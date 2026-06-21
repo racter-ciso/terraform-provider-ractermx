@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 
-	"github.com/racter-ciso/ractermx-terraform/internal/provider"
+	"terraform-provider-ractermx/internal/provider"
 )
 
 // testAccProtoV6ProviderFactories are used to instantiate a provider during
