@@ -32,3 +32,27 @@ variable "ractermx_api_key" {
 
 - `api_key` (String, Sensitive) The API key for authenticating with the RacterMX API. Can also be set via the RACTERMX_API_KEY environment variable.
 - `base_url` (String) The base URL of the RacterMX API. Defaults to https://ractermx.com.
+
+## Required API Key Scopes
+
+Each resource requires specific scopes on your API key. Use the minimum scopes needed for your configuration:
+
+| Resource | Required Scopes |
+|----------|----------------|
+| `ractermx_domain` | `domains:read`, `domains:manage` |
+| `ractermx_alias` | `aliases:read`, `aliases:manage` |
+| `ractermx_api_key` | `api-keys:manage` |
+| `ractermx_blocklist_entry` | `blocklist:read`, `blocklist:manage` |
+| `ractermx_webhook` | `webhooks:read`, `webhooks:manage` |
+| `ractermx_zone_record` | `dns-zone:read`, `dns-zone:manage` |
+| `ractermx_smtp_credential` | `smtp:read`, `smtp:manage` |
+| `ractermx_organization` | `domains:read`, `domains:manage` |
+| `ractermx_alert_rule` | `alerts:read`, `alerts:manage` |
+| `ractermx_check_override` | `domains:read`, `domains:manage` |
+| `ractermx_domain_tag` | `domains:read`, `domains:manage` |
+| `ractermx_domain_tag_assignment` | `domains:read`, `domains:manage` |
+| `ractermx_domain_verification` | `domains:read`, `domains:manage` |
+| `ractermx_domain_notification_preference` | `notifications:read`, `notifications:manage` |
+| `ractermx_retention_policy` | `retention:read`, `retention:manage` |
+
+Data sources only require the `:read` scope of their corresponding resource type.

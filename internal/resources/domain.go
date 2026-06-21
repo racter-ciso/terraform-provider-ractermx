@@ -43,7 +43,8 @@ type DomainResourceModel struct {
 	DnsMode           types.String `tfsdk:"dns_mode"`
 	CatchAllEnabled   types.Bool   `tfsdk:"catch_all_enabled"`
 	CatchAllForwardTo types.String `tfsdk:"catch_all_forward_to"`
-	MaxAliases        types.Int64  `tfsdk:"max_aliases"`
+	MaxAliases                  types.Int64  `tfsdk:"max_aliases"`
+	UnsubscribeRewritingEnabled types.Bool   `tfsdk:"unsubscribe_rewriting_enabled"`
 	// Computed
 	IsActive          types.Bool   `tfsdk:"is_active"`
 	IsVerified        types.Bool   `tfsdk:"is_verified"`
@@ -146,6 +147,14 @@ func (r *DomainResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
+				},
+			},
+			"unsubscribe_rewriting_enabled": schema.BoolAttribute{
+				Description: "Whether unsubscribe link rewriting is enabled for this domain.",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			// Computed attributes
@@ -255,6 +264,9 @@ func (r *DomainResource) Create(ctx context.Context, req resource.CreateRequest,
 	if !plan.MaxAliases.IsNull() && !plan.MaxAliases.IsUnknown() {
 		body["max_aliases"] = plan.MaxAliases.ValueInt64()
 	}
+	if !plan.UnsubscribeRewritingEnabled.IsNull() && !plan.UnsubscribeRewritingEnabled.IsUnknown() {
+		body["unsubscribe_rewriting_enabled"] = plan.UnsubscribeRewritingEnabled.ValueBool()
+	}
 
 	result, err := r.client.Post(ctx, "/domains", body)
 	if err != nil {
@@ -356,6 +368,9 @@ func (r *DomainResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 	if !plan.MaxAliases.Equal(state.MaxAliases) {
 		body["max_aliases"] = plan.MaxAliases.ValueInt64()
+	}
+	if !plan.UnsubscribeRewritingEnabled.Equal(state.UnsubscribeRewritingEnabled) {
+		body["unsubscribe_rewriting_enabled"] = plan.UnsubscribeRewritingEnabled.ValueBool()
 	}
 
 	result, err := r.client.Patch(ctx, "/domains/"+domainID, body)
@@ -483,6 +498,11 @@ func parseDomainResponse(body []byte, model *DomainResourceModel) *domainDiag {
 		model.MaxAliases = types.Int64Value(int64(v))
 	} else {
 		model.MaxAliases = types.Int64Null()
+	}
+	if v, ok := data["unsubscribe_rewriting_enabled"].(bool); ok {
+		model.UnsubscribeRewritingEnabled = types.BoolValue(v)
+	} else {
+		model.UnsubscribeRewritingEnabled = types.BoolNull()
 	}
 
 	// Computed attributes
