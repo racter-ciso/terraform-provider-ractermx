@@ -31,48 +31,138 @@ provider "ractermx" {
 ## Quick Start
 
 ```hcl
-# Create a domain
-resource "ractermx_domain" "example" {
-  name       = "example.com"
-  max_aliases = 100
+# RacterMX Demo Account Setup
+# Provisions a multi-tenant org hierarchy with domains and aliases.
+#
+# Usage:
+#   terraform init
+#   terraform apply -var="api_key=sk_your_key_here"
+
+terraform {
+  required_providers {
+    ractermx = {
+      source  = "racter-ciso/ractermx"
+      version = "~> 1.0"
+    }
+  }
 }
 
-# Verify DNS
-resource "ractermx_domain_verification" "example" {
-  domain_id = ractermx_domain.example.id
+variable "api_key" {
+  type      = string
+  sensitive = true
 }
 
-# Create an alias
-resource "ractermx_alias" "info" {
-  domain_id  = ractermx_domain.example.id
+provider "ractermx" {
+  api_key = var.api_key
+}
+
+# ─── Organizations ────────────────────────────────────────────────
+
+data "ractermx_organizations" "account" {}
+
+resource "ractermx_organization" "acme_corp" {
+  name      = "ACME Corp"
+  parent_id = data.ractermx_organizations.account.root_id
+}
+
+resource "ractermx_organization" "roadrunner" {
+  name      = "RoadRunner LLC"
+  parent_id = ractermx_organization.acme_corp.id
+}
+
+resource "ractermx_organization" "coyotetech" {
+  name      = "CoyoteTech"
+  parent_id = ractermx_organization.acme_corp.id
+}
+
+# ─── RoadRunner LLC Domains ───────────────────────────────────────
+
+resource "ractermx_domain" "beepbeep" {
+  name            = "*.BeepBeep.com"
+  organization_id = ractermx_organization.roadrunner.id
+  dns_mode        = "mx_forwarding"
+  max_aliases     = 100
+}
+
+resource "ractermx_domain" "runningforfun" {
+  name            = "RunningForFun.com"
+  organization_id = ractermx_organization.roadrunner.id
+  dns_mode        = "mx_forwarding"
+  max_aliases     = 100
+}
+
+# ─── CoyoteTech Domains ──────────────────────────────────────────
+
+resource "ractermx_domain" "acme" {
+  name            = "Acme.com"
+  organization_id = ractermx_organization.coyotetech.id
+  dns_mode        = "mx_forwarding"
+  max_aliases     = 200
+}
+
+resource "ractermx_domain" "howtopainttunnels" {
+  name            = "HowToPaintTunnels.com"
+  organization_id = ractermx_organization.coyotetech.id
+  dns_mode        = "mx_forwarding"
+  max_aliases     = 50
+}
+
+resource "ractermx_domain" "howbirdsthink" {
+  name            = "howbirdsthink.com"
+  organization_id = ractermx_organization.coyotetech.id
+  dns_mode        = "mx_forwarding"
+  max_aliases     = 50
+}
+
+# ─── Sample Aliases ───────────────────────────────────────────────
+
+resource "ractermx_alias" "beepbeep_info" {
+  domain_id  = ractermx_domain.beepbeep.id
   local_part = "info"
-  forward_to = "team@company.com"
+  forward_to = "roadrunner@gmail.com"
 }
 
-# Create a DNS zone record
-resource "ractermx_zone_record" "www" {
-  domain_id = ractermx_domain.example.id
-  name      = "www"
-  type      = "CNAME"
-  content   = "example.com"
-  ttl       = 3600
+resource "ractermx_alias" "runningforfun_contact" {
+  domain_id  = ractermx_domain.runningforfun.id
+  local_part = "contact"
+  forward_to = "speedy@roadrunner.io"
 }
 
-# Monitor security posture
-data "ractermx_security_score" "example" {
-  domain_id = ractermx_domain.example.id
+resource "ractermx_alias" "acme_sales" {
+  domain_id  = ractermx_domain.acme.id
+  local_part = "sales"
+  forward_to = "wile.e.coyote@gmail.com"
 }
 
-# Set up alerts
-resource "ractermx_alert_rule" "blacklist" {
-  domain_id  = ractermx_domain.example.id
-  name       = "Blacklist Alert"
-  alert_type = "blacklist_change"
-  condition  = "any_change"
+resource "ractermx_alias" "tunnels_hello" {
+  domain_id  = ractermx_domain.howtopainttunnels.id
+  local_part = "hello"
+  forward_to = "coyote@acme.com"
+}
 
-  channels {
-    channel_type  = "email"
-    email_address = "ops@company.com"
+resource "ractermx_alias" "birds_research" {
+  domain_id  = ractermx_domain.howbirdsthink.id
+  local_part = "research"
+  forward_to = "coyote@acme.com"
+}
+
+# ─── Outputs ──────────────────────────────────────────────────────
+
+output "org_tree" {
+  value = {
+    acme_corp = {
+      id = ractermx_organization.acme_corp.id
+      children = {
+        roadrunner = {
+          id      = ractermx_organization.roadrunner.id
+          domains = [ractermx_domain.beepbeep.name, ractermx_domain.runningforfun.name]
+        }
+        coyotetech = {
+          id      = ractermx_organization.coyotetech.id
+          domains = [ractermx_domain.acme.name, ractermx_domain.howtopainttunnels.name, ractermx_domain.howbirdsthink.name]
+        }
+      }
+    }
   }
 }
 ```
